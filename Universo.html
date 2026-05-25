@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNIVERSO ROMÁNTICO</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;600&family=Cormorant+Garamond:wght@300&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+    --blue:#7dd3fc;
+    --cyan:#38bdf8;
+    --pink:#ff7eb6;
+    --gold:#ffd95c;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    overflow:hidden;
+    background:#020817;
+    font-family:'Montserrat',sans-serif;
+    color:white;
+}
+
+#canvas-container{
+    position:fixed;
+    inset:0;
+}
+
+#intro-screen{
+    position:absolute;
+    inset:0;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+
+    z-index:100;
+
+    background:
+    radial-gradient(
+        circle at center,
+        rgba(20,30,60,.9) 0%,
+        rgba(0,0,0,1) 100%
+    );
+
+    backdrop-filter:blur(10px);
+}
+
+#intro-screen h1{
+    font-family:'Cormorant Garamond',serif;
+    font-size:4rem;
+    font-weight:300;
+    letter-spacing:10px;
+
+    color:#e8f8ff;
+
+    margin-bottom:40px;
+
+    text-shadow:
+        0 0 20px rgba(255,255,255,.7),
+        0 0 50px rgba(125,211,252,.6);
+}
+
+#btn-enter{
+    padding:14px 50px;
+
+    border-radius:50px;
+
+    border:1px solid rgba(255,255,255,.3);
+
+    background:rgba(255,255,255,.05);
+
+    color:white;
+
+    letter-spacing:4px;
+
+    cursor:pointer;
+
+    transition:.4s;
+}
+
+#btn-enter:hover{
+    transform:scale(1.08);
+
+    background:rgba(255,255,255,.1);
+
+    box-shadow:
+        0 0 25px rgba(255,255,255,.3);
+}
+
+#message-card{
+    position:absolute;
+
+    top:50%;
+    left:50%;
+
+    transform:translate(-50%,-50%) scale(.9);
+
+    width:90%;
+    max-width:450px;
+
+    padding:45px;
+
+    z-index:50;
+
+    text-align:center;
+
+    border-radius:30px;
+
+    background:
+    linear-gradient(
+        135deg,
+        rgba(10,20,40,.8),
+        rgba(0,0,0,.92)
+    );
+
+    backdrop-filter:blur(18px);
+
+    border:1px solid rgba(255,255,255,.12);
+
+    opacity:0;
+
+    pointer-events:none;
+
+    transition:.5s;
+}
+
+#message-card.active{
+    opacity:1;
+    pointer-events:auto;
+
+    transform:translate(-50%,-50%) scale(1);
+}
+
+#card-icon{
+    font-size:4rem;
+    margin-bottom:20px;
+}
+
+#card-title{
+    letter-spacing:4px;
+    font-size:.9rem;
+    color:#dff6ff;
+    margin-bottom:20px;
+}
+
+#card-text{
+    font-family:'Cormorant Garamond',serif;
+    font-size:2rem;
+    line-height:1.4;
+    margin-bottom:35px;
+}
+
+#btn-close{
+    padding:10px 30px;
+
+    border-radius:30px;
+
+    background:transparent;
+
+    border:1px solid rgba(255,255,255,.2);
+
+    color:white;
+
+    cursor:pointer;
+}
+
+</style>
+
+<script type="importmap">
+{
+    "imports":{
+        "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+
+</head>
+<body>
+
+<div id="intro-screen">
+    <h1>NUESTRO UNIVERSO</h1>
+    <button id="btn-enter">EXPLORAR</button>
+</div>
+
+<div id="message-card">
+    <div id="card-icon">💖</div>
+    <div id="card-title">LO QUE AMO DE TI</div>
+    <div id="card-text">Mensaje</div>
+    <button id="btn-close">CERRAR</button>
+</div>
+
+<div id="canvas-container"></div>
+
+<script type="module">
+
+import * as THREE from 'three';
+
+import { OrbitControls }
+from 'three/addons/controls/OrbitControls.js';
+
+import { EffectComposer }
+from 'three/addons/postprocessing/EffectComposer.js';
+
+import { RenderPass }
+from 'three/addons/postprocessing/RenderPass.js';
+
+import { UnrealBloomPass }
+from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const frases = [
+
+"Tu sonrisa",
+"Tu mirada",
+"Tu voz",
+"Tu ternura",
+"Tu existencia",
+"Tu magia",
+"Tu forma de amar",
+"Tu dulzura",
+"Tu compañía",
+"Tu risa",
+"Tu corazón",
+"Tu esencia",
+"Tu energía",
+"Tu luz"
+
+];
+
+const emojiData = [
+
+{ emoji:'🤍', color:'#ffffff' },
+
+{ emoji:'💖', color:'#ff6ba6' },
+{ emoji:'💕', color:'#ff8fc7' },
+
+{ emoji:'🌟', color:'#ffd94d' },
+{ emoji:'⭐', color:'#ffcc33' },
+
+{ emoji:'🦋', color:'#ff9ed6' }
+
+];
+
+const data = [];
+
+for(let i=0;i<120;i++){
+
+    const frase =
+    frases[Math.floor(Math.random()*frases.length)];
+
+    const selected =
+    emojiData[Math.floor(Math.random()*emojiData.length)];
+
+    data.push({
+
+        title:frase,
+
+        emoji:selected.emoji,
+
+        color:selected.color,
+
+        card:
+        "Eres la parte más brillante de mi universo. "
+        + frase +
+        " hace que todo tenga sentido."
+
+    });
+
+}
+
+const container =
+document.getElementById('canvas-container');
+
+const scene =
+new THREE.Scene();
+
+scene.fog =
+new THREE.FogExp2(0x020817,.0018);
+
+const camera =
+new THREE.PerspectiveCamera(
+55,
+innerWidth/innerHeight,
+.1,
+2000
+);
+
+camera.position.set(0,40,120);
+
+const renderer =
+new THREE.WebGLRenderer({
+antialias:true
+});
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+renderer.setPixelRatio(
+Math.min(devicePixelRatio,2)
+);
+
+renderer.toneMapping =
+THREE.ACESFilmicToneMapping;
+
+renderer.toneMappingExposure = 1.1;
+
+container.appendChild(
+renderer.domElement
+);
+
+const controls =
+new OrbitControls(
+camera,
+renderer.domElement
+);
+
+controls.enableDamping = true;
+
+controls.autoRotate = true;
+
+controls.autoRotateSpeed = .15;
+
+const composer =
+new EffectComposer(renderer);
+
+composer.addPass(
+new RenderPass(scene,camera)
+);
+
+composer.addPass(
+new UnrealBloomPass(
+new THREE.Vector2(
+innerWidth,
+innerHeight
+),
+1.2,
+0.5,
+0.6
+)
+);
+
+const sun =
+new THREE.Mesh(
+
+new THREE.SphereGeometry(
+15,
+64,
+64
+),
+
+new THREE.MeshBasicMaterial({
+color:0xffdd66
+})
+
+);
+
+scene.add(sun);
+
+const glow1 =
+new THREE.Mesh(
+
+new THREE.SphereGeometry(
+22,
+64,
+64
+),
+
+new THREE.MeshBasicMaterial({
+
+color:0xffe066,
+
+transparent:true,
+
+opacity:.22
+
+})
+
+);
+
+scene.add(glow1);
+
+const glow2 =
+new THREE.Mesh(
+
+new THREE.SphereGeometry(
+30,
+64,
+64
+),
+
+new THREE.MeshBasicMaterial({
+
+color:0xffcc33,
+
+transparent:true,
+
+opacity:.08
+
+})
+
+);
+
+scene.add(glow2);
+
+const starGeo =
+new THREE.BufferGeometry();
+
+const starPos =
+new Float32Array(20000*3);
+
+for(let i=0;i<20000;i++){
+
+const r =
+40 + Math.pow(Math.random(),2)*280;
+
+const theta =
+Math.random()*Math.PI*2;
+
+const phi =
+Math.acos((Math.random()*2-1)*.25);
+
+starPos[i*3] =
+r*Math.sin(phi)*Math.cos(theta);
+
+starPos[i*3+1] =
+r*Math.cos(phi);
+
+starPos[i*3+2] =
+r*Math.sin(phi)*Math.sin(theta);
+
+}
+
+starGeo.setAttribute(
+'position',
+new THREE.BufferAttribute(starPos,3)
+);
+
+const stars =
+new THREE.Points(
+
+starGeo,
+
+new THREE.PointsMaterial({
+
+size:.55,
+
+color:0xffffff,
+
+transparent:true,
+
+opacity:.9,
+
+blending:THREE.AdditiveBlending,
+
+depthWrite:false
+
+})
+
+);
+
+scene.add(stars);
+
+const sprites = [];
+
+function createSprite(
+emoji,
+color
+){
+
+const canvas =
+document.createElement('canvas');
+
+canvas.width = 512;
+canvas.height = 512;
+
+const ctx =
+canvas.getContext('2d');
+
+const gradient =
+ctx.createRadialGradient(
+256,
+256,
+30,
+256,
+256,
+220
+);
+
+gradient.addColorStop(0,color);
+gradient.addColorStop(.3,color+'66');
+gradient.addColorStop(1,'rgba(0,0,0,0)');
+
+ctx.fillStyle = gradient;
+
+ctx.fillRect(0,0,512,512);
+
+ctx.font =
+'160px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+
+ctx.textAlign = 'center';
+
+ctx.textBaseline = 'middle';
+
+ctx.shadowColor = color;
+
+ctx.shadowBlur = 16;
+
+ctx.fillStyle = '#fff';
+
+ctx.fillText(
+emoji,
+256,
+275
+);
+
+const texture =
+new THREE.CanvasTexture(canvas);
+
+texture.colorSpace =
+THREE.SRGBColorSpace;
+
+const material =
+new THREE.SpriteMaterial({
+
+map:texture,
+
+transparent:true,
+
+depthWrite:false
+
+});
+
+const sprite =
+new THREE.Sprite(material);
+
+sprite.scale.set(
+14,
+14,
+1
+);
+
+return sprite;
+
+}
+
+data.forEach((d,i)=>{
+
+const sprite =
+createSprite(
+d.emoji,
+d.color
+);
+
+const angle =
+(i/data.length)*Math.PI*6
++ Math.random();
+
+const distance =
+45 + Math.random()*120;
+
+const height =
+(Math.random()-.5)*70;
+
+sprite.position.set(
+Math.cos(angle)*distance,
+height,
+Math.sin(angle)*distance
+);
+
+sprite.userData = {
+
+data:d,
+
+angle,
+
+distance,
+
+baseY:height,
+
+speed:
+.001 + Math.random()*.002,
+
+bobSpeed:
+1 + Math.random()*2,
+
+originalScale:14
+
+};
+
+scene.add(sprite);
+
+sprites.push(sprite);
+
+});
+
+const raycaster =
+new THREE.Raycaster();
+
+const mouse =
+new THREE.Vector2();
+
+const card =
+document.getElementById('message-card');
+
+addEventListener(
+'mousemove',
+e=>{
+
+mouse.x =
+(e.clientX/innerWidth)*2-1;
+
+mouse.y =
+-(e.clientY/innerHeight)*2+1;
+
+}
+);
+
+addEventListener(
+'click',
+()=>{
+
+if(card.classList.contains('active'))
+return;
+
+raycaster.setFromCamera(
+mouse,
+camera
+);
+
+const intersects =
+raycaster.intersectObjects(
+sprites
+);
+
+if(intersects.length > 0){
+
+const sprite =
+intersects[0].object;
+
+const d =
+sprite.userData.data;
+
+sprite.scale.set(
+18,
+18,
+1
+);
+
+setTimeout(()=>{
+
+sprite.scale.set(
+14,
+14,
+1
+);
+
+},300);
+
+document.getElementById(
+'card-icon'
+).innerText = d.emoji;
+
+document.getElementById(
+'card-title'
+).innerText = d.title;
+
+document.getElementById(
+'card-text'
+).innerText = d.card;
+
+card.classList.add('active');
+
+}
+
+}
+);
+
+document.getElementById(
+'btn-close'
+).addEventListener(
+'click',
+()=>{
+
+card.classList.remove('active');
+
+}
+);
+
+const clock =
+new THREE.Clock();
+
+function animate(){
+
+requestAnimationFrame(
+animate
+);
+
+const t =
+clock.getElapsedTime();
+
+controls.update();
+
+sun.rotation.y += .002;
+
+glow1.rotation.y -= .001;
+
+glow2.rotation.y += .001;
+
+stars.rotation.y = t*.002;
+
+sprites.forEach(sprite=>{
+
+const ud =
+sprite.userData;
+
+ud.angle += ud.speed;
+
+sprite.position.x =
+Math.cos(ud.angle)
+* ud.distance;
+
+sprite.position.z =
+Math.sin(ud.angle)
+* ud.distance;
+
+sprite.position.y =
+ud.baseY +
+Math.sin(
+t*ud.bobSpeed
++ ud.angle
+)*2;
+
+const pulse =
+ud.originalScale +
+Math.sin(
+t*2 + ud.angle
+)*0.5;
+
+if(sprite.scale.x < 17){
+
+sprite.scale.set(
+pulse,
+pulse,
+1
+);
+
+}
+
+});
+
+composer.render();
+
+}
+
+addEventListener(
+'resize',
+()=>{
+
+camera.aspect =
+innerWidth/innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+composer.setSize(
+innerWidth,
+innerHeight
+);
+
+}
+);
+
+document.getElementById(
+'btn-enter'
+).addEventListener(
+'click',
+()=>{
+
+const intro =
+document.getElementById(
+'intro-screen'
+);
+
+intro.style.opacity = 0;
+
+intro.style.transition =
+'2s';
+
+setTimeout(()=>{
+
+intro.style.display='none';
+
+},2000);
+
+}
+);
+
+animate();
+
+</script>
+
+</body>
+</html>
